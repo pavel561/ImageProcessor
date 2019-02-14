@@ -18,7 +18,7 @@ namespace ImageProcessor
 	{
 		static void Main(string[] args)
 		{
-			Console.WriteLine("ImageProcessor ©StudentCorp. ");
+			Console.WriteLine("ImageProcessor pavel561@gmail.com. ");
 			Console.WriteLine("-------------------------------");
 			Console.WriteLine("Выберите требуемое действие: ");
 			Console.WriteLine("[N] - RenameByDate. Переименование фотографий в соотв. с датой съемки ");
@@ -33,7 +33,7 @@ namespace ImageProcessor
 						Console.WriteLine("--------------------------------- ");
 						Console.WriteLine("Вибран режим переименования ");
 						Console.WriteLine("--------------------------------- ");
-						Console.Write("Введите путь к папке с файлами >> ");
+						Console.Write("Введите путь к папке с файлами (в формате C:\\Folder\\Folder) >> ");
 						string filePath = Console.ReadLine();
 						RenameByDate(filePath);
 						break;
@@ -43,7 +43,7 @@ namespace ImageProcessor
 						Console.WriteLine("--------------------------------- ");
 						Console.WriteLine("Вибран режим наложения даты съемки ");
 						Console.WriteLine("--------------------------------- ");
-						Console.Write("Введите путь к папке с файлами >> ");
+						Console.Write("Введите путь к папке с файлами (в формате C:\\Folder\\Folder) >> ");
 						string filePath = Console.ReadLine();
 						DateStamp(filePath);
 						break;
@@ -53,7 +53,7 @@ namespace ImageProcessor
 						Console.WriteLine("--------------------------------- ");
 						Console.WriteLine("Вибран рехим сортировки по году ");
 						Console.WriteLine("--------------------------------- ");
-						Console.Write("Введите путь к папке с файлами >> ");
+						Console.Write("Введите путь к папке с файлами (в формате C:\\Folder\\Folder) >> ");
 						string filePath = Console.ReadLine();
 						SortByYear(filePath);
 						break;
@@ -63,7 +63,7 @@ namespace ImageProcessor
 						Console.WriteLine("--------------------------------- ");
 						Console.WriteLine("Вибран рехим сортировки по геолокации ");
 						Console.WriteLine("--------------------------------- ");
-						Console.Write("Введите путь к папке с файлами >> ");
+						Console.Write("Введите путь к папке с файлами (в формате C:\\Folder\\Folder) >> ");
 						string filePath = Console.ReadLine();
 						SortByLocation(filePath);
 						break;
@@ -77,33 +77,49 @@ namespace ImageProcessor
 		}
 		public static void RenameByDate(string path)
 		{
+			//Берем файл
+			//Считываем дату съемки
+			//Сохраняем файл, переименовав его в соответствии с датой съемки
+			
+
 			var dir = new DirectoryInfo(path);
 			string newDirPath = path + "\\" + dir.Name + "-RenameByDate";
 			Directory.CreateDirectory(newDirPath);
 			var files = dir.GetFiles("*.jpg");
+
 			foreach(FileInfo file in files)
 			{
 				Bitmap image = new Bitmap(file.FullName);
 				Image img = Image.FromFile(file.FullName);
+				//Считываем дату съемки
 				PropertyItem item = image.GetPropertyItem(0x132);
 				string takenDate = System.Text.Encoding.UTF8.GetString(item.Value, 0, item.Value.Length);
 				takenDate = takenDate.Replace(':', '-').Replace(' ', '_').Substring(0,takenDate.Length-1);
 				var creationTime = file.CreationTime;
 				string newName = newDirPath + "\\" + file.Name.Substring(0, file.Name.Length-4).Replace(' ', '_') + "_" + file.CreationTime.ToString().Replace(' ', '_').Replace(':','-') + ".jpg"; //file.Name.Substring(0, file.Name.Length-4).Replace(' ', '_') + "_"
+				//Сохраняем файл, переименовав его в соответствии с датой съемки
 				file.CopyTo(newName, true);
 			}
 		}
 		public static void DateStamp(string path)
 		{
+			// Берем файл.
+			// Считываем дату съемки
+			// Создаем объект битмап
+			// Рисуем в правом верхнем углу дату съемки
+			// Сохраняем файл в папке назначения
+
+
 			var sourceDirPath = new DirectoryInfo(path);
 			string newDirPath = path + "\\" + sourceDirPath.Name + "-DateStamp";
 			Directory.CreateDirectory(newDirPath);
 			var files = sourceDirPath.GetFiles("*.jpg");
 			foreach (FileInfo file in files)
 			{
-
+				// Создаем объект битмап
 				Image image = new Bitmap(file.FullName);
 				Bitmap bitmap = new Bitmap(image);
+				// Считываем дату съемки
 				PropertyItem item = image.GetPropertyItem(0x132);
 				string takenDate = System.Text.Encoding.UTF8.GetString(item.Value, 0, item.Value.Length);
 				takenDate = takenDate.Replace(':', '-').Replace(' ', '_').Substring(0, takenDate.Length - 1);
@@ -116,7 +132,9 @@ namespace ImageProcessor
 				StringFormat drawFormat = new StringFormat();
 				drawFormat.FormatFlags = StringFormatFlags.DisplayFormatControl;
 				Graphics graphics = Graphics.FromImage(bitmap);
+				// Рисуем в правом верхнем углу дату съемки
 				graphics.DrawString(takenDate, drawFont, drawBrush, w_offes, h_offset, drawFormat);
+				// Сохраняем файл в папке назначения
 				bitmap.Save(newName, ImageFormat.Jpeg);
 
 			}
@@ -157,9 +175,8 @@ namespace ImageProcessor
 			string newDirPath = path + "\\" + sourceDirPath.Name + "-SortByLocation";
 			Directory.CreateDirectory(newDirPath);
 			var files = sourceDirPath.GetFiles("*.jpg");
-			//string ApiKey = "4bb2d530-2f04-40f4-a2e2-2f78c9f7dddc";
-			string ApiUrl = "https://geocode-maps.yandex.ru/1.x/?apikey=4bb2d530-2f04-40f4-a2e2-2f78c9f7dddc&geocode=";
-			//BitmapMetadata 
+			string ApiKey = "4bb2d530-2f04-40f4-a2e2-2f78c9f7dddc";	//Ключ для доступа к API Яндекса
+			string ApiUrl = $"https://geocode-maps.yandex.ru/1.x/?apikey=" + ApiKey+ "&geocode=";
 			
 			foreach(FileInfo file in files)
 			{
@@ -168,6 +185,8 @@ namespace ImageProcessor
 				string LongitudeStr = null;
 				try
 				{
+					//Счытываем информацию о геолокации из фотографии
+					//и форматируем в необхлдимый для отправки формат
 					PropertyItem GpsLatitude = image.GetPropertyItem(0x0002);
 					double LatitudeDeg = (double)BitConverter.ToInt32(GpsLatitude.Value, 0) / BitConverter.ToInt32(GpsLatitude.Value, 4);
 					double LatitudeMin = (double)BitConverter.ToInt32(GpsLatitude.Value, 8) / BitConverter.ToInt32(GpsLatitude.Value, 12);
@@ -199,7 +218,7 @@ namespace ImageProcessor
 						{
 							bool AdressFounded = false;
 							bool whileStop = false;
-
+							//Десериализуем XML в ручном режиме (ищем первое вхождение нужного название поля и считываем его значение)
 							while (reader.Read() && !whileStop)
 							{
 								switch (reader.NodeType)
@@ -237,10 +256,20 @@ namespace ImageProcessor
 							}
 
 						}
+						//Сбрасываем состояние запроса и закрываем поток ответа
 						locationRequest.Abort();
 						locationResponse.Close();
+						//API яндекса отдает адрес в виде сторки, отделяя запятой город, область, и т.д. 
+						//Пробую отформатировать строку, и вырезать нужное количество информации для создания соответствующих папок
+						//Метод Split почему-то некорректно извлекает из строки-источника подстроки, если пытаться считать только две подстроки
+						//Он не видит втроую запятую, и формирует вместо двух строк вида:
+						// string[1] = "Беларусь"; string[2] = "Область"
+						//Формирует строки вида:
+						// string[1] = "Беларусь"; string[2] = "Область, Район" (не принимает запятую за разделитель)
+						//Поэтому считываем в лист три подстроки, и затем удаляем лишнюю.
 						List<string> LocationStr = LocationAdressStr.Replace(", ", ",").Replace(' ','_').Split(new char[] { ',' }, 3).ToList();
 						LocationStr.RemoveAt(2);
+						//Формируем относительный адрес расположения папок ("\\Страна\\Область(Город)")
 						string LocationAdr = null;
 						foreach (string str in LocationStr)
 						{
@@ -248,7 +277,7 @@ namespace ImageProcessor
 							LocationAdr += str;
 						}
 						string ForderStr = newDirPath;
-
+						//Создаем новыую папку(если папка существует, только копируем файл в неё)
 						if (Directory.Exists(ForderStr + LocationAdr))
 						{
 							file.CopyTo(ForderStr + LocationAdr + "\\" + file.Name, true);
