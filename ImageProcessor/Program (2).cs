@@ -9,8 +9,6 @@ using System.Drawing.Imaging;
 using System.Media;
 using System.Xml;
 using System.Net;
-using System.Net.Http;
-using System.Xml.Serialization;
 
 namespace ImageProcessor
 {
@@ -160,113 +158,36 @@ namespace ImageProcessor
 			//string ApiKey = "4bb2d530-2f04-40f4-a2e2-2f78c9f7dddc";
 			string ApiUrl = "https://geocode-maps.yandex.ru/1.x/?apikey=4bb2d530-2f04-40f4-a2e2-2f78c9f7dddc&geocode=";
 			//BitmapMetadata 
-			
+			//WebRequest locationRequest = WebRequest.Create(ApiUrl);
 			foreach(FileInfo file in files)
 			{
 				Image image = new Bitmap(file.FullName);
-				string LatitudeStr = null;
-				string LongitudeStr = null;
 				try
 				{
 					PropertyItem GpsLatitude = image.GetPropertyItem(0x0002);
-					double LatitudeDeg = (double)BitConverter.ToInt32(GpsLatitude.Value, 0) / BitConverter.ToInt32(GpsLatitude.Value, 4);
-					double LatitudeMin = (double)BitConverter.ToInt32(GpsLatitude.Value, 8) / BitConverter.ToInt32(GpsLatitude.Value, 12);
-					double LatitudeSec = (double)BitConverter.ToInt32(GpsLatitude.Value, 16) / BitConverter.ToInt32(GpsLatitude.Value, 20);
+					//GpsLatitude.Value.
+					double LatitudeDeg = (double) BitConverter.ToInt32(GpsLatitude.Value, 0)/BitConverter.ToInt32(GpsLatitude.Value, 4);
+					double LatitudeMin = (double) BitConverter.ToInt32(GpsLatitude.Value, 8) / BitConverter.ToInt32(GpsLatitude.Value, 12);
+					double LatitudeSec = (double) BitConverter.ToInt32(GpsLatitude.Value, 16) / BitConverter.ToInt32(GpsLatitude.Value, 20);
 					decimal Latitude = (decimal)LatitudeDeg + ((decimal)LatitudeMin / 60) + ((decimal)LatitudeSec / 3600);
-					LatitudeStr = String.Format("{0:f6}", Latitude).Replace(',', '.');
+					string LatitudeStr = String.Format("{0:f6}", Latitude).Replace(',','.');
 
 					PropertyItem GpsLongitude = image.GetPropertyItem(0x0004);
 					double LongitudeDeg = (double)BitConverter.ToInt32(GpsLongitude.Value, 0) / BitConverter.ToInt32(GpsLongitude.Value, 4);
 					double LongitudeMin = (double)BitConverter.ToInt32(GpsLongitude.Value, 8) / BitConverter.ToInt32(GpsLongitude.Value, 12);
 					double LongitudeSec = (double)BitConverter.ToInt32(GpsLongitude.Value, 16) / BitConverter.ToInt32(GpsLongitude.Value, 20);
 					decimal Longitude = (decimal)LongitudeDeg + ((decimal)LongitudeMin / 60) + ((decimal)LongitudeSec / 3600);
-					LongitudeStr = String.Format("{0:f6}", Longitude).Replace(',', '.');
+					string LongitudeStr = String.Format("{0:f6}", Longitude).Replace(',', '.');
+
+					Console.WriteLine($"{file.Name}; GpsLatitude - {LatitudeStr}; GpsLongitude - {LongitudeStr}"); 
 				}
 				catch
 				{
 					Console.WriteLine($"Файл {file.Name} не содержит информации о геолокации");
 				}
-				if (LongitudeStr != null && LatitudeStr != null)
-				{
-					HttpWebRequest locationRequest = (HttpWebRequest)WebRequest.Create(ApiUrl + LongitudeStr + "," + LatitudeStr);
-					//locationRequest.Timeout = 10000;
-					HttpWebResponse locationResponse = (HttpWebResponse)locationRequest.GetResponse();
-					if (locationResponse.StatusCode == HttpStatusCode.OK)
-					{
-						string LocationAdressStr = null;
-
-						using (XmlReader reader = XmlReader.Create(locationResponse.GetResponseStream()))
-						{
-							bool AdressFounded = false;
-							bool whileStop = false;
-
-							while (reader.Read() && !whileStop)
-							{
-								switch (reader.NodeType)
-								{
-									case XmlNodeType.Element:
-										{
-											if (reader.Name == "formatted")
-											{
-												AdressFounded = true;
-											}
-											break;
-										}
-
-									case XmlNodeType.Text:
-										{
-											if (AdressFounded)
-											{
-												LocationAdressStr = reader.Value;
-												whileStop = true;
-											}
-											break;
-										}
-
-									case XmlNodeType.EndElement:
-										{
-											break;
-										}
-
-									default:
-										{
-											break;
-										}
-
-								}
-							}
-
-						}
-						locationRequest.Abort();
-						locationResponse.Close();
-						List<string> LocationStr = LocationAdressStr.Replace(", ", ",").Replace(' ','_').Split(new char[] { ',' }, 3).ToList();
-						LocationStr.RemoveAt(2);
-						string LocationAdr = null;
-						foreach (string str in LocationStr)
-						{
-							LocationAdr += "\\";
-							LocationAdr += str;
-						}
-						string ForderStr = newDirPath;
-
-						if (Directory.Exists(ForderStr + LocationAdr))
-						{
-							file.CopyTo(ForderStr + LocationAdr + "\\" + file.Name, true);
-						}
-						else
-						{
-							Directory.CreateDirectory(ForderStr + LocationAdr);
-							file.CopyTo(ForderStr + LocationAdr + "\\" + file.Name, true);
-						}
-						Console.WriteLine($"Место съемки {file.Name} - {LocationAdressStr}");
-					}
-					else
-					{
-						Console.WriteLine("Ошибка");
-					}
-				}
-
 			}
+
+
 
 		}
 	}
